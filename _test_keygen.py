@@ -7,6 +7,14 @@ import sys
 
 import keygen as kg
 
+# Windows GBK 控制台下中文会乱码/崩溃，统一改为 UTF-8（与 keygen.py 的处理一致）
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
+
 passed = failed = 0
 def check(name, cond):
     global passed, failed

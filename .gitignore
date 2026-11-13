@@ -1,0 +1,7 @@
+# 本机档案与备份（含专属种子，绝不能提交）
+keygen.json
+keygen-backup.json
+
+# Python 运行产物
+__pycache__/
+*.pyc

@@ -64,8 +64,12 @@ py _test_keygen.py       # Python 版 12 项 + 200 组随机属性测试
 
 ## 参与贡献
 
+## 参与贡献
+
 本项目欢迎社区参与：遇到问题请先检索已有 Issue，再新建 Issue 并描述复现步骤；
-修复类改动请附带测试，并在 Pull Request 中关联对应 Issue。
+欢迎通过 Pull Request 参与改进，修复类改动请附带测试，并在 PR 中关联对应 Issue。
+
+流程：Fork 仓库 → 新建分支 → 提交改动 → 发起 PR → 评审后合并。
 
 ## 许可证
 

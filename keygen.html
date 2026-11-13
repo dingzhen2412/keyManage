@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>密钥生成器 · 实验版</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+    background: #eef1f5; color: #1d2733;
+    min-height: 100vh; display: flex; justify-content: center; padding: 24px 12px;
+  }
+  .wrap { width: 100%; max-width: 520px; }
+  h1 { font-size: 22px; margin-bottom: 6px; }
+  .badge {
+    font-size: 11px; vertical-align: middle; background: #4f6ef7; color: #fff;
+    border-radius: 10px; padding: 2px 8px; margin-left: 6px;
+  }
+  .seedline { font-size: 12px; color: #0d8a4f; margin-bottom: 14px; }
+  .card {
+    background: #fff; border-radius: 14px; padding: 18px;
+    box-shadow: 0 2px 10px rgba(20,30,50,.08); margin-bottom: 14px;
+  }
+  .tabs { display: flex; gap: 8px; margin-bottom: 14px; }
+  .tab {
+    flex: 1; padding: 10px; border: 1px solid #d5dae2; background: #fff;
+    border-radius: 10px; font-size: 14px; cursor: pointer; color: #4a5563;
+  }
+  .tab.active { background: #4f6ef7; border-color: #4f6ef7; color: #fff; font-weight: 600; }
+  label { display: block; font-size: 13px; color: #5a6472; margin: 12px 0 4px; }
+  input[type="text"] {
+    width: 100%; padding: 10px 12px; font-size: 15px;
+    border: 1px solid #d5dae2; border-radius: 8px;
+  }
+  input[type="text"]:focus { outline: 2px solid #4f6ef7; border-color: #4f6ef7; }
+  input[type="range"] { width: 100%; accent-color: #4f6ef7; }
+  .opts { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 8px; }
+  .opts label { display: flex; align-items: center; gap: 6px; margin: 4px 0; font-size: 13px; }
+  button {
+    padding: 9px 14px; border: 1px solid #d5dae2; background: #fff; color: #333;
+    border-radius: 8px; cursor: pointer; font-size: 14px;
+  }
+  button:hover { border-color: #4f6ef7; color: #4f6ef7; }
+  button.primary {
+    width: 100%; background: #4f6ef7; border-color: #4f6ef7; color: #fff;
+    font-weight: 600; padding: 12px; margin-top: 14px;
+  }
+  button.primary:hover { background: #3d5be5; color: #fff; }
+  button.warn { background: #b3261e; border-color: #b3261e; color: #fff; }
+  button.danger { color: #b3261e; border-color: #e5b5b2; }
+  button.mini { padding: 4px 10px; font-size: 12px; border-radius: 6px; }
+  .out {
+    margin-top: 14px; background: #f0f3fa; border: 1px dashed #b9c4e0;
+    border-radius: 10px; padding: 12px;
+  }
+  .pwrow { display: flex; align-items: center; gap: 10px; }
+  .pwrow code {
+    flex: 1; word-break: break-all; font-size: 16px; font-weight: 600;
+    font-family: Consolas, monospace; color: #12315e;
+  }
+  .meta { font-size: 12px; color: #6a7484; margin-top: 8px; line-height: 1.6; }
+  .msg { font-size: 13px; margin-top: 10px; }
+  .msg.err { color: #b3261e; }
+  .empty { font-size: 13px; color: #8a93a2; padding: 8px 0; }
+  .entry {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 0; border-bottom: 1px solid #edf0f4; font-size: 13px;
+  }
+  .entry .name { flex: 1; line-height: 1.5; }
+  .entry .name b { font-size: 14px; }
+  .entry .name span { color: #8a93a2; }
+  .tools { display: flex; gap: 8px; flex-wrap: wrap; }
+  .note { font-size: 12px; color: #9098a6; line-height: 1.7; margin-top: 10px; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>密钥生成器<span class="badge">实验版</span></h1>
+  <div class="seedline" id="seedStatus"></div>
+
+  <div class="tabs">
+    <button class="tab active" id="tabGen">🔑 生成密码</button>
+    <button class="tab" id="tabRead">🔍 读取密码</button>
+  </div>
+
+  <!-- ============ 生成页 ============ -->
+  <section class="card" id="panelGen">
+    <label for="gSite">软件 / 网站名称 *</label>
+    <input type="text" id="gSite" placeholder="例如：微信">
+    <label for="gAccount">账号名（手机号 / 邮箱 / 用户名）</label>
+    <input type="text" id="gAccount" placeholder="例如：138xxxx0000">
+    <label>密钥长度：<b id="lenVal">16</b> 位</label>
+    <input type="range" id="gLen" min="8" max="64" value="16">
+    <div class="opts">
+      <label><input type="checkbox" id="sLower" checked> 小写字母</label>
+      <label><input type="checkbox" id="sUpper" checked> 大写字母</label>
+      <label><input type="checkbox" id="sDigit" checked> 数字</label>
+      <label><input type="checkbox" id="sSymbol" checked> 特殊字符</label>
+      <label><input type="checkbox" id="sNoConfuse"> 排除易混淆字符（0 O 1 l I）</label>
+    </div>
+    <button class="primary" id="btnGen">生成密钥</button>
+    <div class="out hidden" id="genOut">
+      <div class="pwrow">
+        <code id="pwText"></code>
+        <button class="mini" id="btnCopyGen">复制</button>
+      </div>
+      <div class="meta" id="pwMeta"></div>
+    </div>
+    <div class="msg" id="genMsg"></div>
+  </section>
+
+  <!-- ============ 读取页 ============ -->
+  <section class="card hidden" id="panelRead">
+    <label for="rSite">软件 / 网站名称 *</label>
+    <input type="text" id="rSite" placeholder="与生成时填写的一致">
+    <label for="rAccount">账号名</label>
+    <input type="text" id="rAccount" placeholder="与生成时填写的一致">
+    <button class="primary" id="btnRead">读取密钥</button>
+    <div class="out hidden" id="readOut">
+      <div class="pwrow">
+        <code id="rPwText"></code>
+        <button class="mini" id="btnCopyRead">复制</button>
+      </div>
+      <div class="meta" id="rPwMeta"></div>
+    </div>
+    <div class="msg" id="readMsg"></div>
+    <div style="margin-top:18px">
+      <label style="margin-top:0">本机已保存的密钥档案</label>
+      <div id="entryList"></div>
+    </div>
+  </section>
+
+  <!-- ============ 备份工具 ============ -->
+  <div class="card">
+    <div class="tools">
+      <button id="btnExport">⬇ 导出备份文件</button>
+      <button id="btnImport">⬆ 导入备份文件</button>
+      <input type="file" id="fileImport" accept=".json,application/json" hidden>
+      <button class="danger" id="btnReset">重置软件</button>
+    </div>
+    <p class="note">
+      ⚠️ 备份文件包含你的专属随机种子，请保存在安全的地方。<br>
+      实验版说明：全部计算在本机完成，不联网；种子保存在浏览器本地存储中。
+      种子仅生成一次并永久固定，之后每次打开软件只是读取它——你不需要记住任何东西，
+      填写站名+账号即可随时找回密钥。
+    </p>
+  </div>
+</div>
+
+<script>
+/* ==================== CORE-START（纯算法层，与界面无关） ==================== */
+
+/* ---- SHA-256（纯 JS 实现，保证双击打开文件也能用，不依赖网络/HTTPS） ---- */
+const SHA256_K = [
+  0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
+  0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,
+  0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,
+  0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,
+  0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,
+  0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,
+  0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,
+  0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2
+];
+
+function sha256(bytes) {
+  const H = [0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,
+             0x9b05688c,0x1f83d9ab,0x5be0cd19];
+  const len = bytes.length;
+  const total = Math.ceil((len + 9) / 64) * 64;
+  const msg = new Uint8Array(total);
+  msg.set(bytes);
+  msg[len] = 0x80;
+  const dv = new DataView(msg.buffer);
+  dv.setUint32(total - 8, Math.floor(len / 0x20000000));
+  dv.setUint32(total - 4, (len << 3) >>> 0);
+
+  const w = new Int32Array(64);
+  for (let off = 0; off < total; off += 64) {
+    for (let i = 0; i < 16; i++) w[i] = dv.getUint32(off + i * 4);
+    for (let i = 16; i < 64; i++) {
+      const x = w[i - 15], y = w[i - 2];
+      const s0 = ((x >>> 7) | (x << 25)) ^ ((x >>> 18) | (x << 14)) ^ (x >>> 3);
+      const s1 = ((y >>> 17) | (y << 15)) ^ ((y >>> 19) | (y << 13)) ^ (y >>> 10);
+      w[i] = (w[i - 16] + s0 + w[i - 7] + s1) | 0;
+    }
+    let a = H[0], b = H[1], c = H[2], d = H[3],
+        e = H[4], f = H[5], g = H[6], h = H[7];
+    for (let i = 0; i < 64; i++) {
+      const S1  = ((e >>> 6) | (e << 26)) ^ ((e >>> 11) | (e << 21)) ^ ((e >>> 25) | (e << 7));
+      const ch  = (e & f) ^ (~e & g);
+      const t1  = (h + S1 + ch + SHA256_K[i] + w[i]) | 0;
+      const S0  = ((a >>> 2) | (a << 30)) ^ ((a >>> 13) | (a << 19)) ^ ((a >>> 22) | (a << 10));
+      const maj = (a & b) ^ (a & c) ^ (b & c);
+      const t2  = (S0 + maj) | 0;
+      h = g; g = f; f = e; e = (d + t1) | 0;
+      d = c; c = b; b = a; a = (t1 + t2) | 0;
+    }
+    H[0] = (H[0] + a) | 0; H[1] = (H[1] + b) | 0; H[2] = (H[2] + c) | 0; H[3] = (H[3] + d) | 0;
+    H[4] = (H[4] + e) | 0; H[5] = (H[5] + f) | 0; H[6] = (H[6] + g) | 0; H[7] = (H[7] + h) | 0;
+  }
+  const out = new Uint8Array(32);
+  for (let i = 0; i < 8; i++) {
+    out[i * 4]     = (H[i] >>> 24) & 0xff;
+    out[i * 4 + 1] = (H[i] >>> 16) & 0xff;
+    out[i * 4 + 2] = (H[i] >>> 8) & 0xff;
+    out[i * 4 + 3] = H[i] & 0xff;
+  }
+  return out;
+}
+
+function concatBytes(a, b) {
+  const out = new Uint8Array(a.length + b.length);
+  out.set(a); out.set(b, a.length);
+  return out;
+}
+
+function hmacSha256(keyBytes, msgBytes) {
+  let key = Array.from(keyBytes);
+  if (key.length > 64) key = Array.from(sha256(new Uint8Array(key)));
+  while (key.length < 64) key.push(0);
+  const inner = new Uint8Array(key.map(k => k ^ 0x36));
+  const outer = new Uint8Array(key.map(k => k ^ 0x5c));
+  return sha256(concatBytes(outer, sha256(concatBytes(inner, msgBytes))));
+}
+
+/* ---- 由 HMAC 输出构造确定性字节流（取多少字节都够） ---- */
+function makeHmacStream(seedBytes, baseBytes) {
+  let buf = null, pos = 0, counter = 0;
+  return {
+    next() {
+      if (!buf || pos >= buf.length) {
+        const suffix = new TextEncoder().encode("|" + counter++);
+        buf = hmacSha256(seedBytes, concatBytes(baseBytes, suffix));
+        pos = 0;
+      }
+      return buf[pos++];
+    }
+  };
+}
+
+/* ---- 字符集定义 ---- */
+const SETS = {
+  lower : "abcdefghijklmnopqrstuvwxyz",
+  upper : "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+  digit : "0123456789",
+  symbol: "!@#$%^&*()-_=+[]{}?~"
+};
+const CONFUSABLE = "0O1lI";
+
+function alphabetOf(o) {
+  const filter = str => [...str].filter(c => !o.noConfuse || !CONFUSABLE.includes(c));
+  const parts = [];
+  if (o.lower)  parts.push(filter(SETS.lower));
+  if (o.upper)  parts.push(filter(SETS.upper));
+  if (o.digit)  parts.push(filter(SETS.digit));
+  if (o.symbol) parts.push(filter(SETS.symbol));
+  return { parts, all: [...new Set([].concat(...parts))] };
+}
+
+/* ---- 核心：确定性生成密钥 ----
+   规则：1) 每个字符都从"选项字符表"中按字节流选取
+         2) 保证每个选中的字符集至少出现一次（位置同样由字节流决定）
+         3) 相同输入 → 每次输出完全一致 */
+function buildPassword(seedBytes, baseBytes, o) {
+  const { parts, all } = alphabetOf(o);
+  const stream = makeHmacStream(seedBytes, baseBytes);
+  const chars = Array.from({ length: o.len }, () => all[stream.next() % all.length]);
+  const positions = chars.map((_, i) => i);
+  for (const set of parts) {
+    const idx = stream.next() % positions.length;
+    const p = positions.splice(idx, 1)[0];
+    chars[p] = set[stream.next() % set.length];
+  }
+  return chars.join("");
+}
+
+function entropyBits(o) {
+  const { all } = alphabetOf(o);
+  return Math.round(o.len * Math.log2(all.length));
+}
+
+/* ==================== CORE-END ==================== */
+
+/* ==================== UI 层 ==================== */
+const $ = id => document.getElementById(id);
+const STORE_KEY = "keygen_exp_data";
+const te = new TextEncoder();
+
+function b64urlFromBytes(bytes) {
+  let s = btoa(String.fromCharCode(...bytes));
+  return s.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+function bytesFromB64url(s) {
+  s = s.replace(/-/g, "+").replace(/_/g, "/");
+  while (s.length % 4) s += "=";
+  return Uint8Array.from(atob(s), ch => ch.charCodeAt(0));
+}
+
+/* ---- 持久化：种子 + 各站档案，一次存取 ---- */
+function loadData() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  return { seed: null, entries: {} };
+}
+function saveData() { localStorage.setItem(STORE_KEY, JSON.stringify(data)); }
+
+const data = loadData();
+if (!data.seed) {                       /* —— 首次启动：生成一次并永久固定 —— */
+  const seed = new Uint8Array(32);
+  crypto.getRandomValues(seed);
+  data.seed = b64urlFromBytes(seed);
+  saveData();
+}
+const seedBytes = bytesFromB64url(data.seed);
+
+const seedFp = [...seedBytes.slice(0, 4)]
+  .map(b => b.toString(16).padStart(2, "0").toUpperCase()).join("·");
+$("seedStatus").textContent =
+  `✔ 专属随机种子已就绪（指纹 ${seedFp}，保存在本机，无需记忆）`;
+
+/* ---- 站点档案键与工具 ---- */
+const entryKey = (site, account) => site + "\t" + account;
+const norm = s => s.trim().replace(/\s+/g, " ");
+
+function copyText(text) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text);
+  } else {
+    const ta = document.createElement("textarea");
+    ta.value = text; document.body.appendChild(ta);
+    ta.select(); document.execCommand("copy"); ta.remove();
+  }
+}
+
+function showMsg(el, text, isErr) {
+  el.textContent = text;
+  el.classList.toggle("err", !!isErr);
+}
+
+/* ---- 页签切换 ---- */
+function switchTab(gen) {
+  $("panelGen").classList.toggle("hidden", !gen);
+  $("panelRead").classList.toggle("hidden", gen);
+  $("tabGen").classList.toggle("active", gen);
+  $("tabRead").classList.toggle("active", !gen);
+}
+$("tabGen").onclick = () => switchTab(true);
+$("tabRead").onclick = () => switchTab(false);
+
+/* ---- 生成流程 ---- */
+$("gLen").oninput = () => $("lenVal").textContent = $("gLen").value;
+
+function readOpts() {
+  const o = {
+    lower: $("sLower").checked, upper: $("sUpper").checked,
+    digit: $("sDigit").checked, symbol: $("sSymbol").checked,
+    noConfuse: $("sNoConfuse").checked,
+    len: +$("gLen").value
+  };
+  if (!(o.lower || o.upper || o.digit || o.symbol)) {
+    showMsg($("genMsg"), "至少选择一种字符类型", true);
+    return null;
+  }
+  if (o.len > 24 && alphabetOf(o).all.length < 8) {
+    showMsg($("genMsg"), "字符类型太少，长度建议不超过 24 位", true);
+    return null;
+  }
+  return o;
+}
+
+function optSummary(o) {
+  const names = [];
+  if (o.lower) names.push("小写"); if (o.upper) names.push("大写");
+  if (o.digit) names.push("数字"); if (o.symbol) names.push("符号");
+  if (o.noConfuse) names.push("已排除易混字符");
+  return `${o.len} 位 · ${names.join("/")}`;
+}
+
+let genConfirmKey = null;   /* 重新生成防误触：第一次点击只警告，第二次才执行 */
+const GEN_BTN_DEFAULT = "生成密钥";
+$("btnGen").onclick = () => {
+  const site = norm($("gSite").value);
+  const account = norm($("gAccount").value);
+  if (!site) { showMsg($("genMsg"), "请填写软件或网站名称", true); return; }
+  const o = readOpts(); if (!o) return;
+  showMsg($("genMsg"), "");
+
+  const key = entryKey(site, account);
+  const existing = data.entries[key];
+
+  if (existing && genConfirmKey !== key) {
+    genConfirmKey = key;
+    const btn = $("btnGen");
+    btn.textContent = `⚠️「${site}」已有密码 —— 再点一次将作废旧密码`;
+    btn.classList.add("warn");
+    setTimeout(() => {
+      if (genConfirmKey === key) {
+        genConfirmKey = null;
+        btn.textContent = GEN_BTN_DEFAULT;
+        btn.classList.remove("warn");
+      }
+    }, 6000);
+    return;
+  }
+  genConfirmKey = null;
+  const btn = $("btnGen");
+  btn.textContent = GEN_BTN_DEFAULT; btn.classList.remove("warn");
+
+  const entry = {
+    site, account,
+    version: existing ? existing.version + 1 : 1,
+    opts: o,
+    created: existing ? existing.created : Date.now(),
+    updated: Date.now()
+  };
+  data.entries[key] = entry;
+  saveData();
+  renderEntryList();
+
+  const base = te.encode(site + "|" + account + "|v" + entry.version);
+  const pw = buildPassword(seedBytes, base, o);
+  $("pwText").textContent = pw;
+  $("pwMeta").textContent =
+    `${optSummary(o)} · 版本 v${entry.version} · 理论强度约 ${entropyBits(o)} bits\n`
+    + `已保存在本机，随时可在「读取密码」页找回`;
+  $("genOut").classList.remove("hidden");
+  showMsg($("genMsg"),
+    existing ? "已作废旧密码并生成新密码 ✔" : "生成成功 ✔");
+};
+
+$("btnCopyGen").onclick = () => copyText($("pwText").textContent);
+
+/* ---- 读取流程：只需要 站名 + 账号，选项由本机档案复现 ---- */
+$("btnRead").onclick = () => {
+  const site = norm($("rSite").value);
+  const account = norm($("rAccount").value);
+  if (!site) { showMsg($("readMsg"), "请填写软件或网站名称", true); return; }
+  const entry = data.entries[entryKey(site, account)];
+  if (!entry) {
+    $("readOut").classList.add("hidden");
+    showMsg($("readMsg"),
+      `本机没有「${site}」${account ? "（账号 " + account + "）" : ""} 的生成记录。`
+      + `若你在其他设备上生成过，请先在本机导入备份。`, true);
+    return;
+  }
+  const base = te.encode(entry.site + "|" + entry.account + "|v" + entry.version);
+  const pw = buildPassword(seedBytes, base, entry.opts);
+  $("rPwText").textContent = pw;
+  const t = new Date(entry.created).toLocaleString("zh-CN");
+  $("rPwMeta").textContent =
+    `${optSummary(entry.opts)} · 版本 v${entry.version} · 首次生成于 ${t}`;
+  $("readOut").classList.remove("hidden");
+  showMsg($("readMsg"), "");
+};
+
+$("btnCopyRead").onclick = () => copyText($("rPwText").textContent);
+
+/* ---- 档案列表 ---- */
+function renderEntryList() {
+  const list = $("entryList");
+  const keys = Object.keys(data.entries);
+  list.innerHTML = "";
+  if (!keys.length) {
+    list.innerHTML = '<div class="empty">还没有生成过任何密钥</div>';
+    return;
+  }
+  for (const key of keys) {
+    const e = data.entries[key];
+    const row = document.createElement("div");
+    row.className = "entry";
+    const name = document.createElement("div");
+    name.className = "name";
+    name.innerHTML = `<b></b> <span class="acct"></span><br>
+      <span>${optSummary(e.opts)} · v${e.version}</span>`;
+    name.querySelector("b").textContent = e.site;
+    name.querySelector(".acct").textContent = e.account ? " · " + e.account : "";
+    const btn = document.createElement("button");
+    btn.className = "mini";
+    btn.textContent = "读取";
+    btn.onclick = () => {
+      switchTab(false);
+      $("rSite").value = e.site;
+      $("rAccount").value = e.account;
+      $("btnRead").click();
+    };
+    row.appendChild(name); row.appendChild(btn);
+    list.appendChild(row);
+  }
+}
+renderEntryList();
+
+/* ---- 备份导出 / 导入 / 重置 ---- */
+$("btnExport").onclick = () => {
+  const blob = new Blob(
+    [JSON.stringify({ app: "keygen-experiment", exportedAt: new Date().toISOString(),
+                      seed: data.seed, entries: data.entries }, null, 2)],
+    { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "keygen-backup.json";
+  a.click();
+  URL.revokeObjectURL(a.href);
+};
+
+$("btnImport").onclick = () => $("fileImport").click();
+$("fileImport").onchange = () => {
+  const file = $("fileImport").files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const obj = JSON.parse(reader.result);
+      if (!obj || typeof obj.seed !== "string" || typeof obj.entries !== "object") {
+        throw new Error("bad");
+      }
+      data.seed = obj.seed;
+      data.entries = obj.entries;
+      saveData();
+      location.reload();
+    } catch (e) {
+      showMsg($("readMsg"), "备份文件格式无效，导入失败", true);
+    }
+  };
+  reader.readAsText(file);
+};
+
+let resetArmed = false;
+$("btnReset").onclick = () => {
+  if (!resetArmed) {
+    resetArmed = true;
+    $("btnReset").textContent = "确定重置？将删除种子与全部档案 —— 再点一次";
+    setTimeout(() => {
+      resetArmed = false;
+      $("btnReset").textContent = "重置软件";
+    }, 6000);
+    return;
+  }
+  localStorage.removeItem(STORE_KEY);
+  location.reload();
+};
+</script>
+</body>
+</html>
